@@ -1,16 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>动态粒子圣诞树</title>
+    <!-- 可选：添加favicon避免404 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='90' font-size='90'>🎄</text></svg>" type="image/svg+xml">
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
             font-family: 'Poppins', sans-serif;
             height: 100vh;
+            background-color: #000; /* 兜底背景，无视频时显示黑色 */
         }
 
         .banner {
@@ -20,16 +26,31 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            position: relative;
         }
 
+        /* 视频容器：适配不同屏幕 */
         .banner video {
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             object-fit: cover;
             width: 100%;
             height: 100%;
             pointer-events: none;
+            opacity: 0.85; /* 增加透明度让文字更清晰 */
+        }
+
+        /* 无视频时显示圣诞背景图（备用方案） */
+        .banner .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://picsum.photos/id/15/1920/1080') center/cover no-repeat;
+            display: none;
         }
 
         .banner .content {
@@ -38,18 +59,20 @@
             max-width: 1000px;
             margin: 0 auto;
             text-align: center;
+            padding: 0 20px;
         }
 
         .banner .content h1 {
-            margin: 0;
-            padding: 0;
-            font-size: 3.5em;
+            font-size: clamp(2em, 6vw, 3.5em); /* 响应式字体 */
             text-transform: uppercase;
             color: #d11090;
+            position: relative;
+            line-height: 1.2;
         }
 
+        /* 渐变文字动画修复：扩大clip-path范围，适配不同文字长度 */
         h1::after {
-            content: '';
+            content: attr(data-text); /* 复用h1文字，避免重复写 */
             position: absolute;
             top: 0;
             left: 0;
@@ -59,46 +82,98 @@
                     #6d214f, #2e86de, #4cd137, #e84118);
             background-clip: text;
             -webkit-background-clip: text;
-            clip-path: circle(100px at 0% 50%);
-            animation: move 5s infinite;
+            clip-path: circle(120px at 0% 50%);
+            animation: move 8s infinite ease-in-out;
         }
 
         @keyframes move {
             0% {
-                clip-path: circle(100px at 0% 50%);
+                clip-path: circle(120px at 0% 50%);
             }
-
             50% {
-                clip-path: circle(100px at 100% 50%);
+                clip-path: circle(120px at 100% 50%);
             }
-
             100% {
-                clip-path: circle(100px at 0% 50%);
+                clip-path: circle(120px at 0% 50%);
             }
+        }
+
+        /* 点击提示（首次加载显示） */
+        .click-tip {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 16px;
+            opacity: 0.8;
+            animation: fade 2s infinite alternate;
+        }
+
+        @keyframes fade {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
         }
     </style>
 </head>
-
 <body>
     <div class="banner">
-        <video autoplay muted loop>
+        <!-- 视频：优先使用本地视频，无则显示占位图 -->
+        <video id="christmas-video" autoplay muted loop>
             <source src="动态粒子圣诞树.mp4" type="video/mp4">
-            Your browser does not support the video tag.
         </video>
+        <!-- 视频占位图（无视频时自动显示） -->
+        <div class="video-placeholder"></div>
+        
         <div class="content">
-            <h1></h1>
+            <!-- 补充文字内容，用data-text关联伪元素 -->
+            <h1 data-text="动态粒子圣诞树">动态粒子圣诞树</h1>
         </div>
     </div>
+
+    <!-- 点击提示 -->
+    <div class="click-tip">点击页面播放圣诞音乐 🎵</div>
+
+    <!-- 音频：改用HTTPS公共资源，避免跨域/协议问题 -->
     <audio id="music1" loop preload="auto" controls hidden>
-        <source src="http://music.163.com/song/media/outer/url?id=1963443271.mp3">
+        <!-- 替换为自己的音频文件路径（建议上传到仓库同目录） -->
+        <source src="https://cdn.freesound.org/previews/686/686009_12095311-lq.mp3" type="audio/mpeg">
         Your browser does not support the audio element.
     </audio>
+
     <script>
+        // 1. 处理视频占位：无视频时显示背景图
+        const video = document.getElementById('christmas-video');
+        const placeholder = document.querySelector('.video-placeholder');
+        video.addEventListener('error', () => {
+            video.style.display = 'none';
+            placeholder.style.display = 'block';
+        });
+
+        // 2. 音频播放逻辑：修复兼容性，增加错误处理
+        let isMusicPlayed = false; // 避免重复播放
         document.body.addEventListener('click', function () {
-            var myAudio = document.getElementById('music1');
-            myAudio.play();
+            if (isMusicPlayed) return;
+            
+            const myAudio = document.getElementById('music1');
+            // 播放音频并处理错误
+            myAudio.play().then(() => {
+                isMusicPlayed = true;
+                document.querySelector('.click-tip').style.display = 'none'; // 隐藏提示
+                console.log('音乐播放成功 🎶');
+            }).catch(err => {
+                console.error('音乐播放失败：', err);
+                alert('音乐播放失败，请检查音频链接或浏览器权限！');
+            });
+        });
+
+        // 3. 兼容移动端：触摸事件触发播放
+        document.body.addEventListener('touchstart', function (e) {
+            e.preventDefault(); // 阻止默认触摸行为
+            if (!isMusicPlayed) {
+                document.body.click(); // 复用点击逻辑
+            }
         });
     </script>
 </body>
-
 </html>
