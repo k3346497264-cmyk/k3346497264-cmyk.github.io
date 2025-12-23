@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>粒子圣诞树</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+        }
+        .info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">Merry Christmas</div>
+    <script>
+        // 初始化场景、相机、渲染器
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 生成粒子数量
+        const particleCount = 8000;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+
+        // 圣诞树形状参数
+        const radius = 3;
+        const height = 5;
+        const segments = 10;
+        const radiusBottom = 3;
+        const heightSegments = 5;
+
+        // 生成圣诞树形状的粒子位置和颜色
+        for (let i = 0; i < particleCount; i++) {
+            // 生成圣诞树形状的随机点
+            const u = Math.random();
+            const v = Math.random();
+            const theta = u * Math.PI * 2;
+            const phi = Math.acos(2 * v - 1);
+            const r = radius * Math.sqrt(u);
+            const y = height * (v - 0.5);
+
+            positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+            positions[i * 3 + 1] = y;
+            positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+
+            // 颜色：粉色系
+            colors[i * 3] = 1.0; // 红
+            colors[i * 3 + 1] = 0.5; // 绿
+            colors[i * 3 + 2] = 0.7; // 蓝
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        // 粒子材质
+        const material = new THREE.PointsMaterial({
+            size: 0.05,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        // 轨道控制器，可a交互
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // 窗口大小变化时调整
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
