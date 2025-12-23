@@ -1,133 +1,104 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>粒子圣诞树</title>
-    <!-- 修正Three.js及控制器引入路径（适配0.132.2版本） -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.min.js"></script>
+    <title>动态粒子圣诞树</title>
     <style>
         body {
             margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            height: 100vh;
+        }
+
+        .banner {
+            width: 100%;
+            height: 100vh;
             overflow: hidden;
-            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        .info {
+
+        .banner video {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            color: #fff;
-            font-family: "微软雅黑", Arial, sans-serif;
-            font-size: 18px;
-            z-index: 100;
+            top: 0;
+            left: 0;
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
         }
-        .error-tip {
+
+        .banner .content {
+            position: relative;
+            z-index: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .banner .content h1 {
+            margin: 0;
+            padding: 0;
+            font-size: 3.5em;
+            text-transform: uppercase;
+            color: #d11090;
+        }
+
+        h1::after {
+            content: '';
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff4444;
-            font-family: "微软雅黑";
-            display: none;
+            top: 0;
+            left: 0;
+            color: transparent;
+            background-image: linear-gradient(to right,
+                    #c23616, #192a56, #00d2d3, yellow,
+                    #6d214f, #2e86de, #4cd137, #e84118);
+            background-clip: text;
+            -webkit-background-clip: text;
+            clip-path: circle(100px at 0% 50%);
+            animation: move 5s infinite;
+        }
+
+        @keyframes move {
+            0% {
+                clip-path: circle(100px at 0% 50%);
+            }
+
+            50% {
+                clip-path: circle(100px at 100% 50%);
+            }
+
+            100% {
+                clip-path: circle(100px at 0% 50%);
+            }
         }
     </style>
 </head>
+
 <body>
-    <div class="info">Merry Christmas 🎄</div>
-    <div class="error-tip" id="errorTip">当前环境不支持WebGL，无法渲染3D效果</div>
+    <div class="banner">
+        <video autoplay muted loop>
+            <source src="动态粒子圣诞树.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div class="content">
+            <h1></h1>
+        </div>
+    </div>
+    <audio id="music1" loop preload="auto" controls hidden>
+        <source src="http://music.163.com/song/media/outer/url?id=1963443271.mp3">
+        Your browser does not support the audio element.
+    </audio>
     <script>
-        // 兼容性检测：WebGL是否可用
-        if (!THREE.WEBGL.isWebGLAvailable()) {
-            document.getElementById('errorTip').style.display = 'block';
-            throw new Error('WebGL is not available');
-        }
-
-        // 初始化场景、相机、渲染器
-        const scene = new THREE.Scene();
-        // 调整相机参数：更适配移动端+圣诞树视角
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 2, 8); // 调整相机位置，更易看到完整圣诞树
-
-        const renderer = new THREE.WebGLRenderer({ 
-            antialias: true,
-            alpha: true // 透明背景（可选）
-        });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setClearColor(0x000000, 1); // 黑色背景
-        document.body.appendChild(renderer.domElement);
-
-        // 生成粒子数量（适配移动端性能）
-        const particleCount = 5000; 
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        const colors = new Float32Array(particleCount * 3);
-
-        // 圣诞树形状参数（锥形+分层，更贴近真实圣诞树）
-        const maxHeight = 6;    // 树总高度
-        const maxRadius = 2.5;  // 树最大半径（底部）
-
-        // 生成圣诞树锥形粒子（核心修正：从球形改为锥形）
-        for (let i = 0; i < particleCount; i++) {
-            // 分层生成：y轴从0到maxHeight（向上）
-            const y = Math.random() * maxHeight;
-            // 半径随高度递减（锥形）：y越大，半径越小
-            const currentRadius = maxRadius * (1 - y / maxHeight);
-            // 水平方向随机角度
-            const angle = Math.random() * Math.PI * 2;
-            // 水平坐标（x/z）
-            const x = Math.cos(angle) * currentRadius * Math.random();
-            const z = Math.sin(angle) * currentRadius * Math.random();
-
-            // 赋值粒子位置（修正y轴方向，从0向上生长）
-            positions[i * 3] = x;
-            positions[i * 3 + 1] = y - maxHeight/2; // 居中显示
-            positions[i * 3 + 2] = z;
-
-            // 粉色系配色（修正数值，更贴近圣诞粉）
-            colors[i * 3] = 1.0;    // 红
-            colors[i * 3 + 1] = 0.7; // 绿
-            colors[i * 3 + 2] = 0.8; // 蓝
-        }
-
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-        // 粒子材质优化（提升渲染效果）
-        const material = new THREE.PointsMaterial({
-            size: 0.08,          // 粒子大小（适配移动端）
-            vertexColors: true,  // 使用顶点颜色
-            transparent: true,   // 透明
-            opacity: 0.9,        // 不透明度
-            sizeAttenuation: true // 粒子大小随距离衰减（更真实）
-        });
-
-        const particles = new THREE.Points(geometry, material);
-        scene.add(particles);
-
-        // 轨道控制器（优化交互体验）
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true; // 阻尼（顺滑拖动）
-        controls.dampingFactor = 0.05;
-        controls.minDistance = 3;      // 最小缩放距离
-        controls.maxDistance = 15;     // 最大缩放距离
-
-        // 动画循环（增加粒子轻微旋转，提升动感）
-        function animate() {
-            requestAnimationFrame(animate);
-            // 圣诞树缓慢旋转
-            particles.rotation.y += 0.002;
-            controls.update();
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        // 窗口大小适配（修正逻辑）
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.addEventListener('click', function () {
+            var myAudio = document.getElementById('music1');
+            myAudio.play();
         });
     </script>
 </body>
+
 </html>
